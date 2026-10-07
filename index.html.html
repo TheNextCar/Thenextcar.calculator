@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Next Car - เครื่องคำนวณยอดโอน</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f3f3f3;margin:0;color:#222}
+.wrap{max-width:760px;margin:20px auto;background:#fff;padding:18px;border-radius:10px;box-shadow:0 2px 12px #0001}
+h1{font-size:24px;margin:0 0 18px;text-align:center}
+h2{font-size:18px;background:#111;color:#fff;padding:10px;border-radius:6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-weight:bold;font-size:14px}
+input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:5px;margin-top:4px;font-size:16px}
+.full{grid-column:1/-1}
+.result{background:#fff3cd;border:2px solid #e0a800;border-radius:8px;padding:14px;margin-top:15px}
+.big{font-size:28px;font-weight:bold;text-align:center}
+.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee}
+button{padding:11px 18px;border:0;border-radius:6px;background:#111;color:#fff;font-size:16px;margin:12px 5px 0 0;cursor:pointer}
+button.secondary{background:#777}
+.note{font-size:13px;color:#666}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>The Next Car<br><small>เครื่องคำนวณยอดโอนรถ</small></h1>
+
+<h2>ข้อมูลรถและคนขับ</h2>
+<div class="grid">
+<div><label>ชื่อคนขับ</label><input id="driver"></div>
+<div><label>ทะเบียนรถ</label><input id="plate"></div>
+<div class="full"><label>วันที่</label><input id="date" type="date"></div>
+</div>
+
+<h2>รายรับ</h2>
+<div class="grid">
+<div><label>GRAB</label><input class="income" id="grab" type="number" value=""></div>
+<div><label>BOLT</label><input class="income" id="bolt" type="number" value=""></div>
+<div><label>INDRIVER</label><input class="income" id="indriver" type="number" value=""></div>
+<div><label>MAXIM</label><input class="income" id="maxim" type="number" value=""></div>
+<div><label>LINEMAN</label><input class="income" id="lineman" type="number" value=""></div>
+<div><label>งานนอก</label><input class="income" id="outside" type="number" value=""></div>
+</div>
+
+<h2>ค่าใช้จ่าย</h2>
+<div class="grid">
+<div><label>ค่าไฟ</label><input id="electric" type="number" value=""></div>
+<div><label>รายจ่ายอื่นๆ</label><input id="other" type="number" value=""></div>
+</div>
+
+<h2>ระยะทาง</h2>
+<p class="note">กรอกเลขไมล์เริ่มงานและเลขไมล์จบงาน</p>
+<div class="grid">
+<div><label>เริ่มงาน</label><input id="start" type="number" value=""></div>
+<div><label>จบงาน</label><input id="end" type="number" value=""></div>
+</div>
+
+<div class="result">
+<div>รวมยอดที่ต้องโอนเจ้าของรถ</div>
+<div class="big" id="transfer">฿0.00</div>
+<div class="row"><span>ระยะทางที่ใช้</span><b id="distance">0.00 กม.</b></div>
+<div class="row"><span>รายรับต่อกิโลเมตร</span><b id="perkm">0.00 บาท/กม.</b></div>
+</div>
+
+<h2>สรุปการคำนวณ</h2>
+<div id="summary"></div>
+
+<button onclick="calculate()">คำนวณ</button>
+<button class="secondary" onclick="resetForm()">ล้างข้อมูล</button>
+<button onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+</div>
+
+<script>
+function num(id){return parseFloat(document.getElementById(id).value)||0}
+function money(x){return x.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function calculate(){
+ const gross=['grab','bolt','indriver','maxim','lineman','outside'].reduce((s,id)=>s+num(id),0);
+ const ten=gross*.10;
+ const after10=gross-ten;
+ const electric=num('electric'), other=num('other');
+ const afterExpenses=after10-electric-other;
+ const share=afterExpenses/2;
+ const transfer=ten+share;
+
+ const distance=Math.max(0,num('end')-num('start'));
+ const perkm=distance>0?gross/distance:0;
+
+ document.getElementById('transfer').textContent='฿'+money(transfer);
+ document.getElementById('distance').textContent=money(distance)+' กม.';
+ document.getElementById('perkm').textContent=money(perkm)+' บาท/กม.';
+
+ document.getElementById('summary').innerHTML=
+ `<div class="row"><span>รายรับทั้งหมด</span><b>฿${money(gross)}</b></div>
+ <div class="row"><span>หัก 10% เจ้าของรถ</span><b>฿${money(ten)}</b></div>
+ <div class="row"><span>หลังหัก 10%</span><b>฿${money(after10)}</b></div>
+ <div class="row"><span>ค่าไฟ</span><b>฿${money(electric)}</b></div>
+ <div class="row"><span>รายจ่ายอื่นๆ</span><b>฿${money(other)}</b></div>
+ <div class="row"><span>ยอดหลังหักค่าใช้จ่าย</span><b>฿${money(afterExpenses)}</b></div>
+ <div class="row"><span>ส่วนแบ่ง 50% คนขับ</span><b>฿${money(share)}</b></div>
+ <div class="row"><span>10% + ส่วนแบ่ง 50% = ยอดโอน</span><b>฿${money(transfer)}</b></div>
+ <div class="row"><span>รายรับต่อกิโลเมตร</span><b>฿${money(perkm)}</b></div>`;
+}
+function resetForm(){document.querySelectorAll('input').forEach(x=>x.value='');document.getElementById('date').valueAsDate=new Date();calculate()}
+document.getElementById('date').valueAsDate=new Date();
+calculate();
+</script>
+</body>
+</html>
